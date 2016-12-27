@@ -12,6 +12,7 @@
     "bitcore-lib": "^0.13.19",
     "bitcore-payment-protocol": "^1.1.0",
     "bitcore-wallet-client": "^4.4.1",
+    "bitcore-wallet-service": "^1.13.0",
     "bluebird": "^3.4.6",
     "lodash": "^4.17.2",
     "sjcl": "^1.0.6"
