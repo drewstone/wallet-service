@@ -1,7 +1,8 @@
 const { WalletService } = require('./index');
 
-let w;
+const wallet = WalletService();
 const sampleWallet = {
+  file: [process.env.PWD, '/data/.wallet.dat'].join(''),
   name: 'Sample',
   copayer: 'Drew',
   m: 1,
@@ -11,18 +12,13 @@ const sampleWallet = {
   }
 }
 
-WalletService()
-.then(wallet => {
-  w = wallet;
-  return w.createNewWallet(sampleWallet);
+wallet.createWallet(sampleWallet)
+.then(result => {
+  
 })
-.then(success => {
-  if (!success) console.log('Failed to create new wallet');
-  return w.sendTransaction({
-    walletName: sampleWallet.name,
-    payment: {
-      to: 'Johnny',
-      amount: 1
-    }
-  });
+.catch(err => {
+  return wallet.getBalance(sampleWallet);
+})
+.then(balance => {
+  console.log(balance);
 });

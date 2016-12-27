@@ -1,20 +1,22 @@
 const Promise = require('bluebird');
 const Utility = require('./utility')();
+const Bitcore = require('bitcore-lib');
+const PaymentProtocol = require('bitcore-payment-protocol');
 const fs = require('fs');
 
 class Wallet {
   constructor(config) {
-    return Utility.collectWalletClients(config.KEY_STORAGE_DIR)
-    .then(wallets => {
-      this.wallets = wallets;
-      this.config = config;
-      return this;
-    })
+    this.config = config;
+    this.Bitcore = Bitcore;
+    this.PaymentProtocol = PaymentProtocol;
+    return this;
   }
 
   /**
    * Creates a new wallet using BWS (bitcore-wallet-service)
    * @param  {Object} options {
+   *                              file - Path of file
+   *                              password - Password to decrypt wallet (ENCRYPTED ONLY)
    *                              name - Name of the wallet
    *                              copayer - The copayer added to the wallet
    *                              m - First multi-sig value
@@ -25,54 +27,186 @@ class Wallet {
    *                            }
    * @return {Boolean}         Successful wallet creation or error spec
    */
-  createNewWallet(options) {
+  createWallet(options) {
     return new Promise((resolve, reject) => {
-
-      // Check if a wallet with this name already exists
-      if (this.wallets.hasOwnProperty(options.name)) {
-        resolve(false);
-      } else {
-        const client = Utility.createWalletClient();
-        client.createWallet(options.name, options.copayer, options.m, options.n, options.ext, (error) => {
-          if (!error) {
-            const fileName = [options.name, '.dat'].join('')
-            const filePath = [this.config.KEY_STORAGE_DIR, fileName].join('/');
-            fs.writeFile(filePath, client.export(), (err) => {
-              if (!err) {
-                this.wallets[options.name] = client;
-                resolve(true)
-              }
-              else reject(err);
-            });
-          } else {
-            reject(error);
+      Utility.getClient(options, {
+        doNotComplete: true,
+        password: options.password
+      }, client => {
+        client.createWallet(options.name, options.copayer, options.m, options.n, options.ext, (err, secret) => {
+          if (Utility.die(err, reject)) {
+            Utility.saveClient(options, client, () => resolve({secret: secret}));
           }
         });
-      }
+      });
+    });
+  }
+
+  getWallet(options) {
+    return new Promise((resolve, reject) => {
+      Utility.getClient(options, {
+        mustExist: true
+      }, client => {
+        resolve(client);
+      })
     });
   }
 
   /**
-   * Sends transaction originating at wallet
+   * Imports wallet from a given destination
+   * @param  {Object} options {
+   *                            file - File path for imported key/wallet
+   *                            qr - If importing from QR code
+   *                            exportpassword - Password used to decrypt wallet being imported
+   *                            host - Host for bitcorewallet-service
+   *                          }
+   * @param  {String} importFile Path of file to be imported
+   * @return {String}            Confirmation of import
+   */
+  importWallet(options, importFile) {
+    return new Promise((resolve, reject) => {
+      Utility.getClient(options, {
+        mustBeNew: true
+      }, client => {
+        if (options.file) {
+          const str = fs.readFileSync(importFile);
+          try {
+            client.import(JSON.parse(str), {
+              compressed: !!options.qr,
+              password: options.exportpassword
+            });
+          } catch (exception) {
+            reject(exception);
+          }
+
+          Utility.saveClient(options, client, () => {
+            const access = client.canSign() ? 'with signing capability' : 'without signing capability';
+            resolve(`Wallet Imported ${access}.`);
+          });
+        } else {
+          const mnemonics = options.mnemonics;
+          const passphrase = options.passphrase;
+          const network = options.testnet ? 'testnet' : 'livenet';
+          client.importFromMnemonic(mnemonics, {
+            network: network,
+            passphrase: passphrase
+          }, err => {
+            if (Utility.die(err, reject)) {
+              Utility.saveClient(options, client, () => {
+                const access = client.canSing() ? 'with signing capability' : 'without signing capability';
+                resolve(`Wallet Imported ${access}.`);
+              });
+            }
+          });
+        }
+      });
+    });
+  }
+
+  createAddress(options) {
+    return new Promise((resolve, reject) => {
+      Utility.getClient(options, {
+        mustExist: true
+      }, client => {
+        client.createAddress({}, (err, x) => {
+          if (Utility.die(err, reject)) {
+            resolve(x.address);
+          }
+        });
+      });
+    });
+  }
+
+  getBalance(options) {
+    return new Promise((resolve, reject) => {
+      Utility.getClient(options, {
+        mustExist: true
+      }, client => {
+        client.getBalance({}, function(err, x) {
+          if (Utility.die(err, reject)) {
+            resolve(`* Wallet balance ${Utility.renderAmount(x.totalAmount)} (Locked ${Utility.renderAmount(x.lockedAmount)})`);
+          }
+        });
+      });      
+    })
+  }
+
+  /**
+   * Generates transaction
    * @param  {Object} options {
    *                            walletName - Name of wallet
    *                            payment {
    *                              to - Address to send payment to
    *                              amount - Amount to pay
+   *                              note - Note to send with payment
    *                            }
    *                          }
    * @return {[type]}         [description]
    */
-  sendTransaction(options) {
-    return new Promise((resolve, reject) => {
-      const targetWallet = this.wallets[options.walletName];
-      const address = targetWallet.createAddress({}, (err, addr) => {
-        if (!err) return address;
-        else return reject(Utility.Errors.ADDRESS_CREATION_FAILURE);
-      });
+  generateTransaction(options) {
+    options.feePerKb = options.feePerKb || 100e2;
+    options.note = options.note || 'General Source Payment';
 
-      targetWallet.fetchPayPro({ payProUrl: 'dummy' }, (err, paypro) => {
-        console.log(paypro);
+    return new Promise((resolve, reject) => {
+      Utility.getClient(options, {
+        mustExist: true
+      }, client => {
+        client.createTxProposal({
+          outputs: [{
+            toAddress: options.payment.to,
+            amount: options.payment.amount
+          }],
+          message: options.payment.note,
+          feePerKb: options.feePerKb
+        }, (err, txp) => {
+          if (Utility.die(err, reject)) {
+            client.publishTxProposal({
+              txp: txp
+            }, err => {
+              if (Utility.die(err, reject)) {
+                resolve(' * Tx created: ID %s [%s] RequiredSignatures:', Utility.shortID(txp.id), txp.status, txp.requiredSignatures);
+              }
+            });
+          }
+        });
+      });
+    });
+  }
+
+  signTransaction(options) {
+    return new Promise((resolve, reject) => {
+      Utility.getClient(options, {
+        mustExist: true
+      }, client => {
+        return options.input === undefined ? client.getTxProposals({}, (err, txps) => {
+          if (Utility.die(err, reject)) {
+            const txp = Utility.findOneTxProposal(txps, options.txpid);
+            client.signTxProposal(txp, (err, tx) => {
+              if (Utility.die(err, reject)) {
+                resolve('Transaction signed by you');
+              }
+            })
+          }
+        }) : Utility.processBatch(client, JSON.parse(fs.readFileSync(program.input)), resolve, reject);
+      });
+    });
+  }
+
+  broadcastTransaction(options) {
+    return new Promise((resolve, reject) => {
+      Utility.getClient(options, {
+        mustExist: true
+      }, client => {
+        client.getTxProposals({}, (err, txps) => {
+          if (Utility.die(err, reject)) {
+            const txp = Utility.findOneTxProposal(txps, options.txpid);
+            client.broadcast(txp, (err, txp) => {
+              if (Utility.die(err, reject)) {
+                resolve('Transaction Broadcasted: TXID: ' + txp.txid);
+              }
+            });
+          }
+        });
       });
     });
   }
