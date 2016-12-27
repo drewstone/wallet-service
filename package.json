@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Drew Stone (github: drewstone)",
   "license": "ISC",
   "dependencies": {
     "bitcore-lib": "^0.13.19",
