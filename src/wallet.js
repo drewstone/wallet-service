@@ -117,6 +117,22 @@ class Wallet {
     });
   }
 
+  getAddresses(options) {
+    return new Promsie((resolve, reject) => {
+      Utility.getClient(options, {
+        mustExist: true
+      }, client => {
+        client.getMainAddresses({
+          doNotVerify: true
+        }, (err, x) => {
+          if (Utility.die(err, reject)) {
+            resolve(x);
+          }
+        });
+      });
+    });
+  }
+
   getBalance(options) {
     return new Promise((resolve, reject) => {
       Utility.getClient(options, {
