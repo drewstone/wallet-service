@@ -74,8 +74,7 @@ module.exports = () => {
   };
 
   const saveClient = (args, client, cb) => {
-    const filename = args.file || process.env['WALLET_FILE'] || process.env['HOME'] + '/.wallet.dat';
-    console.log(' * Saving file', filename);
+    const filename = args.file || process.env['WALLET_FILE'] || process.env['HOME'] + '/.walletsrc/.wallet.dat';
     if (args.password) {
       saveEncrypted(client, filename, cb);
     } else {

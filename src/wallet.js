@@ -7,9 +7,15 @@ const fs = require('fs');
 class Wallet {
   constructor(config) {
     this.config = config;
-    this.Bitcore = Bitcore;
-    this.PaymentProtocol = PaymentProtocol;
     return this;
+  }
+
+  getBitcoreLib() {
+    return Bitcore;
+  }
+
+  getPayProLib() {
+    return PaymentProtocol;
   }
 
   /**
@@ -33,7 +39,7 @@ class Wallet {
         doNotComplete: true,
         password: options.password
       }, client => {
-        client.createWallet(options.name, options.copayer, options.m, options.n, options.ext, (err, secret) => {
+        client.createWallet(options.name, options.copayer, options.mRequiredKeys, options.nTotalKeys, options.ext, (err, secret) => {
           if (Utility.die(err, reject)) {
             Utility.saveClient(options, client, () => resolve({secret: secret}));
           }
@@ -228,10 +234,10 @@ class Wallet {
   }
 }
 
-module.exports = (config) => () => {
+module.exports = (config) => {
   if (config.NODE_ENV === 'dev') {
     const configuration = Object.assign({}, config, {KEY_STORAGE_DIR: process.env.PWD.concat('/data')});
-    return new Wallet(configuration); 
+    return new Wallet(config);
   } else if (config.NODE_ENV === 'staging') {
     return;
   } else if (config.NODE_ENV === 'prod') {
