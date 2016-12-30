@@ -5,9 +5,6 @@ const sjcl = require('sjcl');
 const url = require('url');
 const _ = require('lodash');
 
-
-const BWS_INSTANCE_URL = 'https://bws.bitpay.com/bws/api'
-
 module.exports = () => {
   const die = (err, reject) => {
     if (err) {
