@@ -4,9 +4,17 @@ const config = require('../config');
 describe('Wallet Tests', () => {
   let wallet;
 
-  before(() => {
+  before(done => {
     wallet = Wallet(config);
-  }); 
+    done();
+  });
+
+  after(done => {
+    wallet.deleteWallet({})
+    .then(status => {
+      done();
+    });
+  })
 
   it('should create a single key wallet', (done) => {
     wallet.createWallet({

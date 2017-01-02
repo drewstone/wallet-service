@@ -12,12 +12,12 @@ Storage.prototype.getName = function() {
   return this.filename;
 };
 
-Storage.prototype.save = function(data, cb) {
+Storage.prototype.save = function(data, cb)  {
   this.fs.writeFile(this.filename, JSON.stringify(data), cb);
 };
 
 Storage.prototype.load = function(cb) {
-  this.fs.readFile(this.filename, 'utf8', function(err, data) {
+  this.fs.readFile(this.filename, 'utf8', (err, data) => {
     if (err) return cb(err);
     try {
       data = JSON.parse(data);
@@ -26,5 +26,10 @@ Storage.prototype.load = function(cb) {
   });
 };
 
+Storage.prototype.delete = function(cb) {
+  this.fs.unlink(this.filename, (err) => {
+    cb(err);
+  });
+};
 
 module.exports = Storage;

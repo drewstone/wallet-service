@@ -232,12 +232,23 @@ class Wallet {
       });
     });
   }
+
+  deleteWallet(options) {
+    return new Promise((resolve, reject) => {
+      Utility.deleteWallet(options, {}, (err) => {
+        if (!err) return resolve(true);
+        else return reject(err);
+      });
+    });
+  }
 }
 
 module.exports = (config) => {
   if (config.NODE_ENV === 'dev') {
-    const configuration = Object.assign({}, config, {KEY_STORAGE_DIR: process.env.PWD.concat('/data')});
-    return new Wallet(config);
+    // Add more configuration if needed
+    const configuration = Object.assign({}, config);
+
+    return new Wallet(configuration);
   } else if (config.NODE_ENV === 'staging') {
     return;
   } else if (config.NODE_ENV === 'prod') {

@@ -5,7 +5,7 @@ const sjcl = require('sjcl');
 const url = require('url');
 const _ = require('lodash');
 
-module.exports = () => {
+module.exports = () => {    
   const die = (err, reject) => {
     if (err) {
       if (err.code && err.code == 'ECONNREFUSED') {
@@ -22,10 +22,9 @@ module.exports = () => {
   const getClient = (args, opts, cb) => {
     opts = opts || {};
 
-    const filename = args.file || process.env['WALLET_FILE'] || process.env['HOME'] + '/.wallet.dat';
+    const filename = args.file || process.env['WALLET_FILE'] || process.env['HOME'] + '/.walletsrc/.wallet.dat';
     const host = args.host || process.env['BWS_HOST'] || 'https://bws.bitpay.com/';
 
-    // console.log(filename);
     const storage = new Storage({
       filename: filename,
     });
@@ -218,14 +217,26 @@ module.exports = () => {
     });
   };
 
+  const deleteWallet = (args, opts, cb) => {
+    opts = opts || {};
+
+    const filename = args.file || process.env['WALLET_FILE'] || process.env['HOME'] + '/.walletsrc/.wallet.dat';
+    const storage = new Storage({
+      filename: filename,
+    });
+
+    return storage.delete(cb);
+  };
+
   return {
     die,
     getClient,
     saveClient,
+    deleteWallet,
     renderAmount,
     shortID,
     findOneTxProposal,
     renderTxProposals,
     processBatch
-  };
+  };  
 };
