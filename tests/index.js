@@ -27,6 +27,10 @@ describe('Wallet Tests', () => {
       }
     })
     .then(res => {
+      return wallet.getWallet({});
+    })
+    .then(client => {
+      console.log(client);
       done();
     })
     .catch(done);
