@@ -1,12 +1,12 @@
 {
   "name": "wallet-service",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Drew Stone (github: drewstone)",
+  "author": "Drew Stone (@drewstone)",
   "license": "ISC",
   "dependencies": {
     "bitcore-lib": "^0.13.19",
