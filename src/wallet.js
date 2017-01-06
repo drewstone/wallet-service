@@ -34,6 +34,7 @@ class Wallet {
    * @return {Boolean}         Successful wallet creation or error spec
    */
   createWallet(options) {
+    options = options || this.config;
     return new Promise((resolve, reject) => {
       Utility.getClient(options, {
         doNotComplete: true,
@@ -49,6 +50,7 @@ class Wallet {
   }
 
   getWallet(options) {
+    options = options || this.config;
     return new Promise((resolve, reject) => {
       Utility.getClient(options, {
         mustExist: true
@@ -149,7 +151,7 @@ class Wallet {
             resolve(`* Wallet balance ${Utility.renderAmount(x.totalAmount)} (Locked ${Utility.renderAmount(x.lockedAmount)})`);
           }
         });
-      });      
+      });
     })
   }
 

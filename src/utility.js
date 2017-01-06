@@ -5,7 +5,7 @@ const sjcl = require('sjcl');
 const url = require('url');
 const _ = require('lodash');
 
-module.exports = () => {    
+module.exports = () => {
   const die = (err, reject) => {
     if (err) {
       if (err.code && err.code == 'ECONNREFUSED') {
@@ -159,7 +159,7 @@ module.exports = () => {
 
       return resolve(matches[0]);
     })
-  }; 
+  };
 
   const renderTxProposals = function(txps) {
     if (_.isEmpty(txps))
@@ -238,5 +238,5 @@ module.exports = () => {
     findOneTxProposal,
     renderTxProposals,
     processBatch
-  };  
+  };
 };
